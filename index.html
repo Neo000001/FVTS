@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field Visit Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+}
+header {
+  background: #1f3a5f;
+  color: white;
+  padding: 15px;
+  font-size: 18px;
+}
+header button {
+  float: right;
+  background: #c62828;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.container {
+  max-width: 500px;
+  margin: 25px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+}
+label {
+  display: block;
+  margin-top: 10px;
+}
+input, select, textarea, button {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+}
+textarea { min-height: 60px; }
+button {
+  background: #1f3a5f;
+  color: white;
+  border: none;
+  margin-top: 15px;
+}
+.hidden { display: none; }
+.sub-box {
+  background: #eef1f5;
+  padding: 10px;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  Field Visit Tracking System
+  <button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+</header>
+
+<!-- LOGIN -->
+<div class="container" id="loginBox">
+  <h3>Login</h3>
+
+  <label>Mobile Number</label>
+  <input id="mobile">
+
+  <label>Password</label>
+  <input id="password" type="password">
+
+  <button type="button" onclick="login()">Login</button>
+</div>
+
+<!-- VISIT -->
+<div class="container hidden" id="visitBox">
+  <h3>Add Visit</h3>
+
+  <label>Client</label>
+  <select id="clientSelect"></select>
+  <button type="button" onclick="toggleNewClient()">➕ Add New Client</button>
+
+  <div class="sub-box hidden" id="newClientBox">
+    <label>Client Name</label>
+    <input id="nc_name">
+
+    <label>Speciality</label>
+    <input id="nc_speciality">
+
+    <label>Hospital</label>
+    <input id="nc_hospital">
+
+    <label>Area</label>
+    <input id="nc_area">
+
+    <label>Type</label>
+    <select id="nc_type">
+      <option value="">Select</option>
+      <option>Doctor</option>
+      <option>Hospital</option>
+      <option>Diagnostic</option>
+      <option>Corporate</option>
+    </select>
+
+    <button type="button" onclick="addClient()">Save Client</button>
+  </div>
+
+  <label>HQ / Ex-Station</label>
+  <select id="hq">
+    <option value="">Select</option>
+    <option>HQ</option>
+    <option>Ex-Station</option>
+  </select>
+
+  <label>Co-Working</label>
+  <input id="coworking">
+
+  <label>Target Services</label>
+  <select id="services" multiple>
+    <option>Test</option>
+    <option>Health Package</option>
+    <option>Camp</option>
+    <option>Corporate</option>
+    <option>Other</option>
+  </select>
+
+  <label>Discussion Summary</label>
+  <textarea id="discussion"></textarea>
+
+  <label>Follow-up Actions</label>
+  <textarea id="followupAction"></textarea>
+
+  <label>Follow-up Due Date</label>
+  <input type="date" id="followupDate">
+
+  <label>Status</label>
+  <select id="status">
+    <option value="">Select</option>
+    <option>Pending</option>
+    <option>Completed</option>
+  </select>
+
+  <button type="button" onclick="submitVisit()">Submit Visit</button>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbw7Bq_RdYtPiIWvumsvWHRHSQivQzcbbM7xEMSGQKGcoq3bwb7Kz6k91j4VvWnA632yxw/exec";
+
+let user = {};
+let lat = null, lng = null;
+
+navigator.geolocation.getCurrentPosition(
+  p => { lat = p.coords.latitude; lng = p.coords.longitude; },
+  () => alert("GPS permission required")
+);
+
+/* LOGIN */
+function login() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "login",
+      mobile: mobile.value,
+      password: password.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.success) return alert("Invalid login");
+
+    user = d;
+    loginBox.classList.add("hidden");
+    visitBox.classList.remove("hidden");
+    logoutBtn.classList.remove("hidden");
+    loadClients();
+
+    alert("Login success: " + d.role);
+  });
+}
+
+/* LOGOUT */
+function logout() {
+  user = {};
+  loginBox.classList.remove("hidden");
+  visitBox.classList.add("hidden");
+  logoutBtn.classList.add("hidden");
+}
+
+/* CLIENTS */
+function loadClients() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({ action: "getClients" })
+  })
+  .then(r => r.json())
+  .then(list => {
+    clientSelect.innerHTML = "<option value=''>Select Client</option>";
+    list.forEach(c => {
+      const o = document.createElement("option");
+      o.value = JSON.stringify(c);
+      o.text = c.client_name + " (" + c.hospital_name + ")";
+      clientSelect.appendChild(o);
+    });
+  });
+}
+
+function toggleNewClient() {
+  newClientBox.classList.toggle("hidden");
+}
+
+function addClient() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "addClient",
+      client_name: nc_name.value,
+      speciality: nc_speciality.value,
+      hospital_name: nc_hospital.value,
+      area: nc_area.value,
+      type: nc_type.value,
+      created_by: user.user_id
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert("Client added");
+      newClientBox.classList.add("hidden");
+      loadClients();
+    }
+  });
+}
+
+/* VISIT */
+function submitVisit() {
+  const c = JSON.parse(clientSelect.value);
+
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "addVisit",
+      user_id: user.user_id,
+      user_name: user.user_name,
+      client_id: c.client_id,
+      client_name: c.client_name,
+      speciality: c.speciality,
+      hospital_name: c.hospital_name,
+      lat, lng,
+      hq_ex_station: hq.value,
+      coworking: coworking.value,
+      target_services: [...services.selectedOptions].map(o => o.value).join(", "),
+      discussion_summary: discussion.value,
+      followup_actions: followupAction.value,
+      followup_due_date: followupDate.value,
+      status: status.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => alert(d.success ? "Visit saved" : d.message));
+}
+</script>
+
+</body>
+</html>
