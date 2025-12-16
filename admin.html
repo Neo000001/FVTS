@@ -5,34 +5,43 @@
 <title>Admin Panel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<script>
+const admin = JSON.parse(localStorage.getItem("admin"));
+if(!admin || admin.role !== "ADMIN"){
+  location.href = "index.html";
+}
+</script>
+
 <style>
 body{margin:0;font-family:Arial;background:#f4f6f8}
-header{background:#1f3a5f;color:#fff;padding:15px;display:flex;justify-content:space-between}
-button{padding:8px;border:none;cursor:pointer}
+header{background:#1f3a5f;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center}
+button{padding:8px 12px;border:none;cursor:pointer;background:#1f3a5f;color:#fff;border-radius:4px}
+button:hover{opacity:.9}
 .main{padding:20px}
 .card{background:#fff;padding:15px;border-radius:6px;margin-bottom:15px}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.kpi{background:#eef2f7;padding:15px;border-radius:6px;text-align:center}
+.kpi{background:#eef2f7;padding:15px;border-radius:6px;text-align:center;font-size:14px}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
-th,td{border:1px solid #ccc;padding:6px}
+th,td{border:1px solid #ccc;padding:6px;text-align:left}
 th{background:#eef2f7}
 input,select{width:100%;padding:6px;margin-top:5px}
 .section{display:none}
 .section.active{display:block}
+.nav button{margin-right:5px}
 </style>
 </head>
 
 <body>
 
 <header>
-  <b>ADMIN PANEL</b>
+  <b>ADMIN PANEL – <span id="adminName"></span></b>
   <button onclick="logout()">Logout</button>
 </header>
 
 <div class="main">
 
 <!-- NAV -->
-<div class="card">
+<div class="card nav">
   <button onclick="show('dash')">Dashboard</button>
   <button onclick="show('report')">Reports</button>
   <button onclick="show('users')">Users</button>
@@ -44,8 +53,8 @@ input,select{width:100%;padding:6px;margin-top:5px}
   <div class="grid">
     <div class="kpi">Today<br><b id="d_today">0</b></div>
     <div class="kpi">Yesterday<br><b id="d_yest">0</b></div>
-    <div class="kpi">Month<br><b id="d_month">0</b></div>
-    <div class="kpi">Pending<br><b id="d_pending">0</b></div>
+    <div class="kpi">This Month<br><b id="d_month">0</b></div>
+    <div class="kpi">Pending Follow-ups<br><b id="d_pending">0</b></div>
     <div class="kpi">Total Visits<br><b id="d_total">0</b></div>
     <div class="kpi">Active Users<br><b id="d_users">0</b></div>
   </div>
@@ -53,7 +62,7 @@ input,select{width:100%;padding:6px;margin-top:5px}
 
 <!-- REPORTS -->
 <div id="report" class="section card">
-  <h3>Reports</h3>
+  <h3>Visit Reports</h3>
   <div class="grid">
     <div>
       <label>From</label>
@@ -64,10 +73,11 @@ input,select{width:100%;padding:6px;margin-top:5px}
       <input type="date" id="r_to">
     </div>
     <div>
-      <label>User</label>
-      <input id="r_user" placeholder="Leave blank for all">
+      <label>User (optional)</label>
+      <input id="r_user" placeholder="User name">
     </div>
   </div>
+  <br>
   <button onclick="loadReport()">Generate</button>
 
   <table>
@@ -101,9 +111,10 @@ input,select{width:100%;padding:6px;margin-top:5px}
       <option>BDO</option>
     </select>
   </div>
-  <button onclick="createUser()">Create</button>
+  <br>
+  <button onclick="createUser()">Create User</button>
 
-  <h4>Existing Users</h4>
+  <h4 style="margin-top:20px">Existing Users</h4>
   <table>
     <thead>
       <tr>
@@ -112,7 +123,7 @@ input,select{width:100%;padding:6px;margin-top:5px}
         <th>Role</th>
         <th>Status</th>
         <th>New Password</th>
-        <th>Actions</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody id="userTable"></tbody>
@@ -123,6 +134,8 @@ input,select{width:100%;padding:6px;margin-top:5px}
 
 <script>
 const API="https://script.google.com/macros/s/AKfycbxp58RS5Hmsi73MBTRds_MNxAgfBkex0IkoFDzVwGEqQvjL99j33aQXdWXO69889WhV5w/exec";
+
+document.getElementById("adminName").innerText = admin.name;
 
 function show(id){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
@@ -198,15 +211,17 @@ function loadUsers(){
             </select>
           </td>
           <td><input id="p_${u.user_id}" placeholder="New password"></td>
-          <td>
-            <button onclick="resetPass('${u.user_id}')">Reset</button>
-          </td>
+          <td><button onclick="resetPass('${u.user_id}')">Reset</button></td>
         </tr>`;
     });
   });
 }
 
 function createUser(){
+  if(!u_name.value || !u_mobile.value || !u_pass.value){
+    alert("Fill all fields"); return;
+  }
+
   fetch(API,{
     method:"POST",
     body:JSON.stringify({
@@ -216,7 +231,14 @@ function createUser(){
       password:u_pass.value,
       role:u_role.value
     })
-  }).then(()=>{loadUsers();alert("User created")});
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(!d.success){alert("Create failed");return;}
+    alert("User created");
+    u_name.value="";u_mobile.value="";u_pass.value="";
+    loadUsers();
+  });
 }
 
 function updateUser(id,role,status){
@@ -233,6 +255,8 @@ function updateUser(id,role,status){
 
 function resetPass(id){
   const pass=document.getElementById("p_"+id).value;
+  if(!pass){alert("Enter new password");return;}
+
   fetch(API,{
     method:"POST",
     body:JSON.stringify({
@@ -240,7 +264,13 @@ function resetPass(id){
       user_id:id,
       new_password:pass
     })
-  }).then(()=>alert("Password reset"));
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(!d.success){alert("Reset failed");return;}
+    alert("Password reset successful");
+    document.getElementById("p_"+id).value="";
+  });
 }
 
 loadUsers();
