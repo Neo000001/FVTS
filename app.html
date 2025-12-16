@@ -60,9 +60,22 @@ body {
   padding: 20px;
   border-radius: 8px;
 }
+
+.kpi-wrap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.kpi {
+  background: #eef2f7;
+  padding: 15px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+}
 .note {
-  color: #777;
   font-size: 13px;
+  color: #777;
 }
 </style>
 </head>
@@ -84,17 +97,25 @@ body {
     <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <!-- MAIN CONTENT -->
+  <!-- MAIN -->
   <div class="main">
 
     <!-- DASHBOARD -->
     <div id="dashboard" class="section">
       <div class="container">
         <h3>Dashboard</h3>
-        <p class="note">
-          KPIs & charts will appear here<br>
-          (Total visits, pending follow-ups, user activity)
-        </p>
+
+        <div class="kpi-wrap">
+          <div class="kpi">Today Visits<br><b id="k_today">0</b></div>
+          <div class="kpi">Month Visits<br><b id="k_month">0</b></div>
+          <div class="kpi">Pending Follow-ups<br><b id="k_pending">0</b></div>
+          <div class="kpi">Active Users<br><b id="k_users">0</b></div>
+        </div>
+
+        <br>
+        <canvas id="dateChart"></canvas>
+        <br>
+        <canvas id="userChart"></canvas>
       </div>
     </div>
 
@@ -103,7 +124,7 @@ body {
       <div class="container">
         <h3>Visits / Site Entry</h3>
         <p class="note">
-          Visit entry form + visit history will be here
+          Visit entry form + visit history will be plugged here next.
         </p>
       </div>
     </div>
@@ -113,8 +134,7 @@ body {
       <div class="container">
         <h3>Reports</h3>
         <p class="note">
-          Date / User / Branch filters<br>
-          Follow-up reports, export later
+          Date / User / Branch filters + export.
         </p>
       </div>
     </div>
@@ -124,7 +144,7 @@ body {
       <div class="container">
         <h3>User Management</h3>
         <p class="note">
-          Create, edit, activate / deactivate users
+          User master (create / edit / activate / deactivate).
         </p>
       </div>
     </div>
@@ -134,7 +154,7 @@ body {
       <div class="container">
         <h3>Settings</h3>
         <p class="note">
-          Password reset (self & admin reset)
+          Password reset (self + admin reset).
         </p>
       </div>
     </div>
@@ -142,17 +162,20 @@ body {
   </div>
 </div>
 
-<script>
-/* ===== CONFIG ===== */
-const API = "https://script.google.com/macros/s/AKfycbyX4vdPwU1bHeiXFHAMt5usBueFtsbS4_pEo73tDUOxdNm2wNASpbI8EtFLOSTnqhJJGw/exec";
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-/* ===== SESSION ===== */
+<script>
+/* ================= CONFIG ================= */
+const API = "https://script.google.com/macros/s/AKfycby5CPy0pBMpmAlqpy3SJadJ_oClIS3GzYFgIqeaVK49HYx1Kg0cqWYZTM4LnprPx484uw/exec";
+
+/* ================= SESSION ================= */
 const user = JSON.parse(localStorage.getItem("user"));
 if (!user) {
   window.location.href = "login.html";
 }
 
-/* ===== ROLE-BASED MENU VISIBILITY ===== */
+/* ================= ROLE MENU ================= */
 if (user.role === "BDO" || user.role === "ABDM") {
   hide("menuDashboard");
   hide("menuReports");
@@ -169,26 +192,71 @@ if (user.role === "SR_ABDM") {
   hide("menuUsers");
 }
 
-/* ===== DEFAULT LANDING ===== */
-if (user.role === "ADMIN" || user.role === "GM" || user.role === "SR_ABDM") {
+/* ================= DEFAULT PAGE ================= */
+if (["ADMIN", "GM", "SR_ABDM"].includes(user.role)) {
   showSection("dashboard");
 } else {
   showSection("visits");
 }
 
-/* ===== FUNCTIONS ===== */
+/* ================= FUNCTIONS ================= */
 function hide(id) {
   document.getElementById(id).style.display = "none";
 }
 
-function showSection(sectionId) {
+function showSection(id) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.getElementById(sectionId).classList.add("active");
+  document.getElementById(id).classList.add("active");
+
+  if (id === "dashboard") loadDashboard();
 }
 
 function logout() {
   localStorage.clear();
   window.location.href = "login.html";
+}
+
+/* ================= DASHBOARD ================= */
+let dateChartObj, userChartObj;
+
+function loadDashboard() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({ action: "getDashboard" })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.success) return;
+
+    k_today.innerText = d.todayCount;
+    k_month.innerText = d.monthCount;
+    k_pending.innerText = d.pendingFollowups;
+    k_users.innerText = d.activeUsers;
+
+    const dates = Object.keys(d.visitsByDate).slice(-7);
+    const dateVals = dates.map(k => d.visitsByDate[k]);
+
+    if (dateChartObj) dateChartObj.destroy();
+    dateChartObj = new Chart(dateChart, {
+      type: "line",
+      data: {
+        labels: dates,
+        datasets: [{ label: "Visits", data: dateVals }]
+      }
+    });
+
+    const users = Object.keys(d.visitsByUser);
+    const userVals = users.map(u => d.visitsByUser[u]);
+
+    if (userChartObj) userChartObj.destroy();
+    userChartObj = new Chart(userChart, {
+      type: "bar",
+      data: {
+        labels: users,
+        datasets: [{ label: "Visits", data: userVals }]
+      }
+    });
+  });
 }
 </script>
 
