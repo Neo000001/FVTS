@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field Visit App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+}
+header {
+  background: #1f3a5f;
+  color: white;
+  padding: 15px;
+  font-size: 18px;
+}
+header button {
+  float: right;
+  background: #c62828;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.container {
+  max-width: 500px;
+  margin: 25px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+}
+label {
+  display: block;
+  margin-top: 10px;
+}
+input, select, textarea, button {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+}
+textarea { min-height: 60px; }
+button {
+  background: #1f3a5f;
+  color: white;
+  border: none;
+  margin-top: 15px;
+}
+.hidden { display: none; }
+.sub-box {
+  background: #eef1f5;
+  padding: 10px;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  Field Visit System
+  <button onclick="logout()">Logout</button>
+</header>
+
+<!-- DASHBOARD -->
+<div class="container hidden" id="dashboardBox">
+  <h3>Dashboard</h3>
+  <p>📊 Summary reports will appear here</p>
+</div>
+
+<!-- USER MANAGEMENT (ADMIN ONLY) -->
+<div class="container hidden" id="userMgmtBox">
+  <h3>User Management (Admin)</h3>
+
+  <label>Name</label>
+  <input id="um_name">
+
+  <label>Mobile</label>
+  <input id="um_mobile">
+
+  <label>Password</label>
+  <input id="um_password" type="password">
+
+  <label>Role</label>
+  <select id="um_role">
+    <option value="">Select</option>
+    <option>BDO</option>
+    <option>ABDM</option>
+    <option>SR_ABDM</option>
+    <option>GM</option>
+  </select>
+
+  <label>Status</label>
+  <select id="um_status">
+    <option>ACTIVE</option>
+    <option>INACTIVE</option>
+  </select>
+
+  <button type="button" onclick="createUser()">Create User</button>
+
+  <p style="font-size:12px;color:#777">
+    (Backend connection will be added next)
+  </p>
+</div>
+
+<!-- VISIT ENTRY -->
+<div class="container hidden" id="visitBox">
+  <h3>Add Visit</h3>
+
+  <label>Client</label>
+  <select id="clientSelect"></select>
+  <button type="button" onclick="toggleNewClient()">➕ Add New Client</button>
+
+  <div class="sub-box hidden" id="newClientBox">
+    <label>Client Name</label>
+    <input id="nc_name">
+
+    <label>Speciality</label>
+    <input id="nc_speciality">
+
+    <label>Hospital</label>
+    <input id="nc_hospital">
+
+    <label>Area</label>
+    <input id="nc_area">
+
+    <label>Type</label>
+    <select id="nc_type">
+      <option value="">Select</option>
+      <option>Doctor</option>
+      <option>Hospital</option>
+      <option>Diagnostic</option>
+      <option>Corporate</option>
+    </select>
+
+    <button type="button" onclick="addClient()">Save Client</button>
+  </div>
+
+  <label>HQ / Ex-Station</label>
+  <select id="hq">
+    <option value="">Select</option>
+    <option>HQ</option>
+    <option>Ex-Station</option>
+  </select>
+
+  <label>Co-Working</label>
+  <input id="coworking" placeholder="Arun + Siva">
+
+  <label>Target Services</label>
+  <select id="services" multiple>
+    <option>Test</option>
+    <option>Health Package</option>
+    <option>Camp</option>
+    <option>Corporate</option>
+    <option>Other</option>
+  </select>
+
+  <label>Discussion Summary</label>
+  <textarea id="discussion"></textarea>
+
+  <label>Follow-up Actions</label>
+  <textarea id="followupAction"></textarea>
+
+  <label>Follow-up Due Date</label>
+  <input type="date" id="followupDate">
+
+  <label>Status</label>
+  <select id="status">
+    <option value="">Select</option>
+    <option>Pending</option>
+    <option>Completed</option>
+  </select>
+
+  <button type="button" onclick="submitVisit()">Submit Visit</button>
+</div>
+
+<script>
+/* 🔗 API URL */
+const API = "https://script.google.com/macros/s/AKfycbz6mMdysUMHtbbG1yoIsk4Y__k2ARb8H_qIsbUZ5FcafGs-BgC8msbY21oBvWfMcka1/exec";
+
+/* SESSION CHECK */
+const user = JSON.parse(localStorage.getItem("user"));
+if (!user) {
+  window.location.href = "login.html";
+}
+
+/* GPS */
+let lat = null, lng = null;
+navigator.geolocation.getCurrentPosition(
+  p => { lat = p.coords.latitude; lng = p.coords.longitude; },
+  () => alert("GPS permission required")
+);
+
+/* APPLY ROLE UI */
+applyRoleUI(user.role);
+loadClients();
+
+/* ROLE BASED UI */
+function applyRoleUI(role) {
+  dashboardBox.classList.add("hidden");
+  visitBox.classList.add("hidden");
+  userMgmtBox.classList.add("hidden");
+
+  if (role === "ADMIN") {
+    dashboardBox.classList.remove("hidden");
+    visitBox.classList.remove("hidden");
+    userMgmtBox.classList.remove("hidden");
+  }
+
+  if (role === "GM") {
+    dashboardBox.classList.remove("hidden");
+  }
+
+  if (role === "SR_ABDM") {
+    dashboardBox.classList.remove("hidden");
+    visitBox.classList.remove("hidden");
+  }
+
+  if (role === "ABDM" || role === "BDO") {
+    visitBox.classList.remove("hidden");
+  }
+}
+
+/* LOGOUT */
+function logout() {
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+
+/* CLIENTS */
+function loadClients() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({ action: "getClients" })
+  })
+  .then(r => r.json())
+  .then(list => {
+    clientSelect.innerHTML = "<option value=''>Select Client</option>";
+    list.forEach(c => {
+      const o = document.createElement("option");
+      o.value = JSON.stringify(c);
+      o.text = c.client_name + " (" + c.hospital_name + ")";
+      clientSelect.appendChild(o);
+    });
+  });
+}
+
+function toggleNewClient() {
+  newClientBox.classList.toggle("hidden");
+}
+
+function addClient() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "addClient",
+      client_name: nc_name.value,
+      speciality: nc_speciality.value,
+      hospital_name: nc_hospital.value,
+      area: nc_area.value,
+      type: nc_type.value,
+      created_by: user.user_id
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert("Client added");
+      newClientBox.classList.add("hidden");
+      loadClients();
+    }
+  });
+}
+
+/* VISIT */
+function submitVisit() {
+  const c = JSON.parse(clientSelect.value);
+
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "addVisit",
+      user_id: user.user_id,
+      user_name: user.user_name,
+      client_id: c.client_id,
+      client_name: c.client_name,
+      speciality: c.speciality,
+      hospital_name: c.hospital_name,
+      lat, lng,
+      hq_ex_station: hq.value,
+      coworking: coworking.value,
+      target_services: [...services.selectedOptions].map(o => o.value).join(", "),
+      discussion_summary: discussion.value,
+      followup_actions: followupAction.value,
+      followup_due_date: followupDate.value,
+      status: status.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => alert(d.success ? "Visit saved" : d.message));
+}
+
+/* USER MANAGEMENT (UI ONLY) */
+function createUser() {
+  if (user.role !== "ADMIN") {
+    alert("Unauthorized");
+    return;
+  }
+
+  alert(
+    "User UI ready.\n\n" +
+    "Name: " + um_name.value + "\n" +
+    "Mobile: " + um_mobile.value + "\n" +
+    "Role: " + um_role.value
+  );
+}
+</script>
+
+</body>
+</html>
