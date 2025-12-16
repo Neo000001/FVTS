@@ -20,14 +20,13 @@ button:hover{opacity:.9}
 .main{padding:20px}
 .card{background:#fff;padding:15px;border-radius:6px;margin-bottom:15px}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.kpi{background:#eef2f7;padding:15px;border-radius:6px;text-align:center;font-size:14px}
+.kpi{background:#eef2f7;padding:15px;border-radius:6px;text-align:center}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
-th,td{border:1px solid #ccc;padding:6px;text-align:left}
+th,td{border:1px solid #ccc;padding:6px}
 th{background:#eef2f7}
 input,select{width:100%;padding:6px;margin-top:5px}
 .section{display:none}
 .section.active{display:block}
-.nav button{margin-right:5px}
 </style>
 </head>
 
@@ -40,8 +39,7 @@ input,select{width:100%;padding:6px;margin-top:5px}
 
 <div class="main">
 
-<!-- NAV -->
-<div class="card nav">
+<div class="card">
   <button onclick="show('dash')">Dashboard</button>
   <button onclick="show('report')">Reports</button>
   <button onclick="show('users')">Users</button>
@@ -53,8 +51,8 @@ input,select{width:100%;padding:6px;margin-top:5px}
   <div class="grid">
     <div class="kpi">Today<br><b id="d_today">0</b></div>
     <div class="kpi">Yesterday<br><b id="d_yest">0</b></div>
-    <div class="kpi">This Month<br><b id="d_month">0</b></div>
-    <div class="kpi">Pending Follow-ups<br><b id="d_pending">0</b></div>
+    <div class="kpi">Month<br><b id="d_month">0</b></div>
+    <div class="kpi">Pending<br><b id="d_pending">0</b></div>
     <div class="kpi">Total Visits<br><b id="d_total">0</b></div>
     <div class="kpi">Active Users<br><b id="d_users">0</b></div>
   </div>
@@ -62,20 +60,11 @@ input,select{width:100%;padding:6px;margin-top:5px}
 
 <!-- REPORTS -->
 <div id="report" class="section card">
-  <h3>Visit Reports</h3>
+  <h3>Reports</h3>
   <div class="grid">
-    <div>
-      <label>From</label>
-      <input type="date" id="r_from">
-    </div>
-    <div>
-      <label>To</label>
-      <input type="date" id="r_to">
-    </div>
-    <div>
-      <label>User (optional)</label>
-      <input id="r_user" placeholder="User name">
-    </div>
+    <input type="date" id="r_from">
+    <input type="date" id="r_to">
+    <input id="r_user" placeholder="User name (optional)">
   </div>
   <br>
   <button onclick="loadReport()">Generate</button>
@@ -135,7 +124,7 @@ input,select{width:100%;padding:6px;margin-top:5px}
 <script>
 const API="https://script.google.com/macros/s/AKfycbxp58RS5Hmsi73MBTRds_MNxAgfBkex0IkoFDzVwGEqQvjL99j33aQXdWXO69889WhV5w/exec";
 
-document.getElementById("adminName").innerText = admin.name;
+document.getElementById("adminName").innerText = admin.user_name;
 
 function show(id){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
@@ -174,13 +163,13 @@ function loadReport(){
     reportTable.innerHTML="";
     d.data.forEach(x=>{
       reportTable.innerHTML+=`
-        <tr>
-          <td>${x.date}</td>
-          <td>${x.user}</td>
-          <td>${x.client}</td>
-          <td>${x.hospital}</td>
-          <td>${x.status}</td>
-        </tr>`;
+      <tr>
+        <td>${x.date}</td>
+        <td>${x.user}</td>
+        <td>${x.client}</td>
+        <td>${x.hospital}</td>
+        <td>${x.status}</td>
+      </tr>`;
     });
   });
 }
@@ -188,37 +177,38 @@ function loadReport(){
 /* USERS */
 function loadUsers(){
   fetch(API,{method:"POST",body:JSON.stringify({action:"adminGetUsers"})})
-  .then(r=>r.json()).then(d=>{
+  .then(r=>r.json())
+  .then(d=>{
     userTable.innerHTML="";
     d.users.forEach(u=>{
       userTable.innerHTML+=`
-        <tr>
-          <td>${u.name}</td>
-          <td>${u.mobile}</td>
-          <td>
-            <select onchange="updateUser('${u.user_id}',this.value,'${u.status}')">
-              <option ${u.role=="ADMIN"?"selected":""}>ADMIN</option>
-              <option ${u.role=="GM"?"selected":""}>GM</option>
-              <option ${u.role=="SR_ABDM"?"selected":""}>SR_ABDM</option>
-              <option ${u.role=="ABDM"?"selected":""}>ABDM</option>
-              <option ${u.role=="BDO"?"selected":""}>BDO</option>
-            </select>
-          </td>
-          <td>
-            <select onchange="updateUser('${u.user_id}','${u.role}',this.value)">
-              <option ${u.status=="ACTIVE"?"selected":""}>ACTIVE</option>
-              <option ${u.status=="INACTIVE"?"selected":""}>INACTIVE</option>
-            </select>
-          </td>
-          <td><input id="p_${u.user_id}" placeholder="New password"></td>
-          <td><button onclick="resetPass('${u.user_id}')">Reset</button></td>
-        </tr>`;
+      <tr>
+        <td>${u.name}</td>
+        <td>${u.mobile}</td>
+        <td>
+          <select onchange="updateUser('${u.user_id}',this.value,'${u.status}')">
+            <option ${u.role=="ADMIN"?"selected":""}>ADMIN</option>
+            <option ${u.role=="GM"?"selected":""}>GM</option>
+            <option ${u.role=="SR_ABDM"?"selected":""}>SR_ABDM</option>
+            <option ${u.role=="ABDM"?"selected":""}>ABDM</option>
+            <option ${u.role=="BDO"?"selected":""}>BDO</option>
+          </select>
+        </td>
+        <td>
+          <select onchange="updateUser('${u.user_id}','${u.role}',this.value)">
+            <option ${u.status=="ACTIVE"?"selected":""}>ACTIVE</option>
+            <option ${u.status=="INACTIVE"?"selected":""}>INACTIVE</option>
+          </select>
+        </td>
+        <td><input id="p_${u.user_id}" placeholder="New password"></td>
+        <td><button onclick="resetPass('${u.user_id}')">Reset</button></td>
+      </tr>`;
     });
   });
 }
 
 function createUser(){
-  if(!u_name.value || !u_mobile.value || !u_pass.value){
+  if(!u_name.value||!u_mobile.value||!u_pass.value){
     alert("Fill all fields"); return;
   }
 
@@ -229,7 +219,8 @@ function createUser(){
       name:u_name.value,
       mobile:u_mobile.value,
       password:u_pass.value,
-      role:u_role.value
+      role:u_role.value,
+      created_by: admin.user_id
     })
   })
   .then(r=>r.json())
@@ -248,21 +239,23 @@ function updateUser(id,role,status){
       action:"adminUpdateUser",
       user_id:id,
       role:role,
-      status:status
+      status:status,
+      updated_by: admin.user_id
     })
   });
 }
 
 function resetPass(id){
   const pass=document.getElementById("p_"+id).value;
-  if(!pass){alert("Enter new password");return;}
+  if(!pass){alert("Enter password");return;}
 
   fetch(API,{
     method:"POST",
     body:JSON.stringify({
       action:"adminResetPassword",
       user_id:id,
-      new_password:pass
+      new_password:pass,
+      updated_by: admin.user_id
     })
   })
   .then(r=>r.json())
