@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field Visit App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{margin:0;font-family:Arial;background:#f4f6f8}
+.hidden{display:none}
+
+/* LOGIN */
+#loginBox{
+  height:100vh;display:flex;justify-content:center;align-items:center;
+  background:linear-gradient(135deg,#1f3a5f,#2c5aa0)
+}
+.login{
+  background:#fff;padding:25px;width:320px;border-radius:8px
+}
+.login h3{text-align:center}
+
+/* APP */
+.app{display:flex;height:100vh}
+.sidebar{
+  width:220px;background:#1f3a5f;color:#fff;padding-top:10px
+}
+.sidebar h2{text-align:center;font-size:18px}
+.sidebar button{
+  width:100%;padding:12px;border:none;background:none;color:#fff;text-align:left
+}
+.sidebar button:hover{background:#16304f}
+.main{flex:1;padding:20px;overflow:auto}
+
+.section{display:none}
+.section.active{display:block}
+
+.container{background:#fff;padding:20px;border-radius:8px}
+.kpi{background:#eef2f7;padding:15px;border-radius:6px;text-align:center}
+.kpi-wrap{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+
+input,select,textarea,button{
+  width:100%;padding:8px;margin-top:6px
+}
+textarea{min-height:60px}
+button.primary{background:#1f3a5f;color:#fff;border:none}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+th,td{border:1px solid #ccc;padding:6px}
+th{background:#eef2f7}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginBox">
+  <div class="login">
+    <h3>Login</h3>
+    <input id="mobile" placeholder="Mobile">
+    <input id="password" type="password" placeholder="Password">
+    <button class="primary" onclick="login()">Login</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app hidden" id="appBox">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h2>Field Visit</h2>
+    <button id="mDash" onclick="show('dashboard')">📊 Dashboard</button>
+    <button id="mVisit" onclick="show('visits')">📝 Visits</button>
+    <button id="mReport" onclick="show('reports')">📑 Reports</button>
+    <button id="mUsers" onclick="show('users')">👥 Users</button>
+    <button id="mSet" onclick="show('settings')">⚙️ Settings</button>
+    <button onclick="logout()">🚪 Logout</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="section">
+      <div class="container">
+        <h3>Dashboard</h3>
+        <div class="kpi-wrap">
+          <div class="kpi">Today<br><b id="k1">0</b></div>
+          <div class="kpi">Month<br><b id="k2">0</b></div>
+          <div class="kpi">Pending<br><b id="k3">0</b></div>
+          <div class="kpi">Users<br><b id="k4">0</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISITS -->
+    <div id="visits" class="section">
+      <div class="container">
+        <h3>Visit Entry</h3>
+        <input id="vClient" placeholder="Client Name">
+        <input id="vLoc" placeholder="Location">
+        <textarea id="vSum" placeholder="Summary"></textarea>
+        <select id="vStatus"><option>Pending</option><option>Completed</option></select>
+        <button class="primary" onclick="addVisit()">Submit</button>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="reports" class="section">
+      <div class="container">
+        <h3>Reports</h3>
+        <p>Date / User / Status filters will be here</p>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="users" class="section">
+      <div class="container">
+        <h3>User Management</h3>
+        <p>Create / Edit / Activate users</p>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings" class="section">
+      <div class="container">
+        <h3>Settings</h3>
+        <p>Password reset</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API="https://script.google.com/macros/s/AKfycbxn6EmnZRtG64OVYpuRPguTmcre7-p8kRMd52m253fstIhnmyi-YUZUO6ClvUsDM7CC2A/exec";
+let user=null;
+
+/* LOGIN */
+function login(){
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      action:"login",
+      mobile:mobile.value,
+      password:password.value
+    })
+  }).then(r=>r.json()).then(d=>{
+    if(!d.success){alert("Invalid login");return;}
+    user=d;
+    loginBox.classList.add("hidden");
+    appBox.classList.remove("hidden");
+    applyRole();
+    show(user.role==="BDO"||user.role==="ABDM"?"visits":"dashboard");
+  });
+}
+
+/* ROLE UI */
+function applyRole(){
+  if(user.role==="BDO"||user.role==="ABDM"){
+    mDash.style.display="none";
+    mReport.style.display="none";
+    mUsers.style.display="none";
+    mSet.style.display="none";
+  }
+  if(user.role==="GM"){
+    mVisit.style.display="none";
+    mUsers.style.display="none";
+  }
+  if(user.role==="SR_ABDM"){
+    mUsers.style.display="none";
+  }
+}
+
+/* NAV */
+function show(id){
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* LOGOUT */
+function logout(){
+  user=null;
+  appBox.classList.add("hidden");
+  loginBox.classList.remove("hidden");
+}
+
+/* VISIT */
+function addVisit(){
+  navigator.geolocation.getCurrentPosition(p=>{
+    fetch(API,{
+      method:"POST",
+      body:JSON.stringify({
+        action:"addVisit",
+        user_id:user.user_id,
+        user_name:user.user_name,
+        client_name:vClient.value,
+        location:vLoc.value,
+        summary:vSum.value,
+        status:vStatus.value,
+        lat:p.coords.latitude,
+        lng:p.coords.longitude
+      })
+    }).then(r=>r.json()).then(d=>{
+      alert(d.success?"Saved":"Error");
+    });
+  },()=>alert("GPS required"));
+}
+</script>
+
+</body>
+</html>
