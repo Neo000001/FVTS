@@ -77,7 +77,16 @@ button {
   <button type="button" onclick="login()">Login</button>
 </div>
 
-<!-- VISIT -->
+<!-- DASHBOARD (ADMIN / GM / SR_ABDM) -->
+<div class="container hidden" id="dashboardBox">
+  <h3>Dashboard</h3>
+  <p>✔ Total Visits</p>
+  <p>✔ Pending Follow-ups</p>
+  <p>✔ User-wise Summary</p>
+  <p><i>(Reports will be added next)</i></p>
+</div>
+
+<!-- VISIT ENTRY (ADMIN / SR_ABDM / ABDM / BDO) -->
 <div class="container hidden" id="visitBox">
   <h3>Add Visit</h3>
 
@@ -118,7 +127,7 @@ button {
   </select>
 
   <label>Co-Working</label>
-  <input id="coworking">
+  <input id="coworking" placeholder="Arun + Siva">
 
   <label>Target Services</label>
   <select id="services" multiple>
@@ -149,11 +158,13 @@ button {
 </div>
 
 <script>
+/* 🔗 YOUR LIVE API */
 const API = "https://script.google.com/macros/s/AKfycbz6mMdysUMHtbbG1yoIsk4Y__k2ARb8H_qIsbUZ5FcafGs-BgC8msbY21oBvWfMcka1/exec";
 
 let user = {};
 let lat = null, lng = null;
 
+/* GPS */
 navigator.geolocation.getCurrentPosition(
   p => { lat = p.coords.latitude; lng = p.coords.longitude; },
   () => alert("GPS permission required")
@@ -175,12 +186,34 @@ function login() {
 
     user = d;
     loginBox.classList.add("hidden");
-    visitBox.classList.remove("hidden");
     logoutBtn.classList.remove("hidden");
+
+    applyRoleUI(d.role);
     loadClients();
 
     alert("Login success: " + d.role);
   });
+}
+
+/* ROLE-BASED UI */
+function applyRoleUI(role) {
+  visitBox.classList.add("hidden");
+  dashboardBox.classList.add("hidden");
+
+  if (role === "ADMIN") {
+    visitBox.classList.remove("hidden");
+    dashboardBox.classList.remove("hidden");
+  }
+  if (role === "GM") {
+    dashboardBox.classList.remove("hidden");
+  }
+  if (role === "SR_ABDM") {
+    visitBox.classList.remove("hidden");
+    dashboardBox.classList.remove("hidden");
+  }
+  if (role === "ABDM" || role === "BDO") {
+    visitBox.classList.remove("hidden");
+  }
 }
 
 /* LOGOUT */
@@ -188,6 +221,7 @@ function logout() {
   user = {};
   loginBox.classList.remove("hidden");
   visitBox.classList.add("hidden");
+  dashboardBox.classList.add("hidden");
   logoutBtn.classList.add("hidden");
 }
 
@@ -266,5 +300,4 @@ function submitVisit() {
 </script>
 
 </body>
-
 </html>
