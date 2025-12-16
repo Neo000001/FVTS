@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Loading...</title>
+<script>
+const user = JSON.parse(localStorage.getItem("user"));
+
+if (!user) {
+  window.location.href = "login.html";
+} else {
+  if (["ADMIN", "GM", "SR_ABDM"].includes(user.role)) {
+    window.location.href = "dashboard.html";
+  } else {
+    window.location.href = "visits.html";
+  }
+}
+</script>
+</head>
+<body>
+<p>Loading...</p>
+</body>
+</html>
