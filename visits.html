@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Visits | Field Visit System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+}
+
+/* HEADER */
+header {
+  background: #1f3a5f;
+  color: #fff;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+header b {
+  font-size: 18px;
+}
+header button {
+  background: #c62828;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+/* MAIN */
+.main {
+  padding: 20px;
+}
+
+.container {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+}
+input, select, textarea, button {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+}
+
+textarea {
+  min-height: 60px;
+}
+
+button.primary {
+  background: #1f3a5f;
+  color: white;
+  border: none;
+  margin-top: 15px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 13px;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}
+th {
+  background: #eef2f7;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <b>Visits / Site Entry</b>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<div class="main">
+
+  <!-- VISIT ENTRY -->
+  <div class="container">
+    <h3>Add Visit</h3>
+
+    <label>Client Name</label>
+    <input id="client_name" placeholder="Doctor / Hospital / Client">
+
+    <label>Location / Branch</label>
+    <input id="location" placeholder="HQ / Branch">
+
+    <label>Visit Summary</label>
+    <textarea id="summary"></textarea>
+
+    <label>Follow-up Status</label>
+    <select id="status">
+      <option>Pending</option>
+      <option>Completed</option>
+    </select>
+
+    <button class="primary" onclick="submitVisit()">Submit Visit</button>
+
+    <p id="gpsStatus" style="font-size:12px;color:#777"></p>
+  </div>
+
+  <br>
+
+  <!-- VISIT HISTORY -->
+  <div class="container">
+    <h3>Recent Visits</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>User</th>
+          <th>Client</th>
+          <th>Location</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="visitTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- AUTH -->
+<script src="js/auth.js"></script>
+
+<script>
+/* ===== CONFIG ===== */
+const API = "https://script.google.com/macros/s/AKfycby5CPy0pBMpmAlqpy3SJadJ_oClIS3GzYFgIqeaVK49HYx1Kg0cqWYZTM4LnprPx484uw/exec";
+
+/* ===== AUTH ===== */
+requireLogin();
+requireRole(["ADMIN", "SR_ABDM", "ABDM", "BDO"]);
+
+/* ===== GPS ===== */
+let lat = null, lng = null;
+
+navigator.geolocation.getCurrentPosition(
+  p => {
+    lat = p.coords.latitude;
+    lng = p.coords.longitude;
+    gpsStatus.innerText = "📍 GPS captured";
+  },
+  () => {
+    gpsStatus.innerText = "❌ GPS required";
+  }
+);
+
+/* ===== SUBMIT VISIT ===== */
+function submitVisit() {
+  if (!lat || !lng) {
+    alert("GPS permission required");
+    return;
+  }
+
+  if (!client_name.value || !location.value) {
+    alert("Fill all required fields");
+    return;
+  }
+
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "addVisit",
+      user_id: user.user_id,
+      user_name: user.user_name,
+      client_name: client_name.value,
+      location: location.value,
+      summary: summary.value,
+      status: status.value,
+      lat: lat,
+      lng: lng
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert("Visit saved");
+      client_name.value = "";
+      location.value = "";
+      summary.value = "";
+      loadVisits();
+    } else {
+      alert(d.message || "Error");
+    }
+  });
+}
+
+/* ===== LOAD VISITS ===== */
+function loadVisits() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "getVisits",
+      requester_role: user.role,
+      user_id: user.user_id
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    visitTable.innerHTML = "";
+    d.visits.forEach(v => {
+      visitTable.innerHTML += `
+        <tr>
+          <td>${v.date}</td>
+          <td>${v.user}</td>
+          <td>${v.client}</td>
+          <td>${v.location}</td>
+          <td>${v.status}</td>
+        </tr>
+      `;
+    });
+  });
+}
+
+loadVisits();
+</script>
+
+</body>
+</html>
