@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Settings | Field Visit System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{margin:0;font-family:Arial;background:#f4f6f8}
+header{background:#1f3a5f;color:#fff;padding:15px;display:flex;justify-content:space-between}
+header button{background:#c62828;color:#fff;border:none;padding:8px}
+.main{padding:20px}
+.container{background:#fff;padding:20px;border-radius:8px}
+input,button,select{width:100%;padding:8px;margin-top:8px}
+button.primary{background:#1f3a5f;color:#fff;border:none}
+.note{font-size:13px;color:#777;margin-top:5px}
+hr{margin:20px 0}
+</style>
+</head>
+
+<body>
+
+<header>
+  <b>Settings</b>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<div class="main">
+
+  <!-- CHANGE OWN PASSWORD -->
+  <div class="container">
+    <h3>Change My Password</h3>
+
+    <input type="password" id="oldPass" placeholder="Old Password">
+    <input type="password" id="newPass" placeholder="New Password">
+
+    <button class="primary" onclick="changeMyPassword()">Change Password</button>
+    <p class="note">You will need to login again after change.</p>
+  </div>
+
+  <!-- ADMIN RESET -->
+  <div class="container" id="adminResetBox" style="margin-top:20px">
+    <h3>Admin: Reset User Password</h3>
+
+    <input id="resetUserId" placeholder="User ID">
+    <input type="password" id="resetNewPass" placeholder="New Password">
+
+    <button class="primary" onclick="adminReset()">Reset Password</button>
+  </div>
+
+</div>
+
+<!-- AUTH -->
+<script src="js/auth.js"></script>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycby5CPy0pBMpmAlqpy3SJadJ_oClIS3GzYFgIqeaVK49HYx1Kg0cqWYZTM4LnprPx484uw/exec";
+
+/* AUTH */
+requireLogin();
+
+/* ADMIN ONLY SECTION */
+if (user.role !== "ADMIN") {
+  document.getElementById("adminResetBox").style.display = "none";
+}
+
+/* CHANGE OWN PASSWORD */
+function changeMyPassword() {
+  if (!oldPass.value || !newPass.value) {
+    alert("Fill all fields");
+    return;
+  }
+
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "changePassword",
+      user_id: user.user_id,
+      old_password: oldPass.value,
+      new_password: newPass.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert("Password changed. Please login again.");
+      logout();
+    } else {
+      alert(d.message);
+    }
+  });
+}
+
+/* ADMIN RESET PASSWORD */
+function adminReset() {
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "adminResetPassword",
+      requester_role: user.role,
+      user_id: resetUserId.value,
+      new_password: resetNewPass.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.success ? "Password reset" : d.message);
+  });
+}
+</script>
+
+</body>
+</html>
