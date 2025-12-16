@@ -1,144 +1,195 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Field Visit App</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Field Visit System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body{margin:0;font-family:Arial;background:#f4f6f8}
-.app{display:flex;height:100vh}
-.sidebar{width:220px;background:#1f3a5f;color:#fff}
-.sidebar button{width:100%;padding:12px;border:none;background:none;color:#fff;text-align:left}
-.sidebar button:hover{background:#16304f}
-.main{flex:1;padding:20px;overflow:auto}
-.container{background:#fff;padding:20px;border-radius:8px}
-.hidden{display:none}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{border:1px solid #ccc;padding:6px;text-align:left}
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+}
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 230px;
+  background: #1f3a5f;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar h2 {
+  text-align: center;
+  padding: 15px 0;
+  margin: 0;
+  border-bottom: 1px solid #16304f;
+}
+.sidebar button {
+  padding: 12px 15px;
+  border: none;
+  background: none;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+}
+.sidebar button:hover {
+  background: #16304f;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+.section {
+  display: none;
+}
+.section.active {
+  display: block;
+}
+.container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+}
+.note {
+  color: #777;
+  font-size: 13px;
+}
 </style>
 </head>
 
 <body>
 
 <div class="app">
+
+  <!-- SIDEBAR -->
   <div class="sidebar">
-    <button onclick="show('users')">👥 User Master</button>
+    <h2>Field Visit</h2>
+
+    <button id="menuDashboard" onclick="showSection('dashboard')">📊 Dashboard</button>
+    <button id="menuVisits" onclick="showSection('visits')">📝 Visits / Site Entry</button>
+    <button id="menuReports" onclick="showSection('reports')">📑 Reports</button>
+    <button id="menuUsers" onclick="showSection('users')">👥 User Management</button>
+    <button id="menuSettings" onclick="showSection('settings')">⚙️ Settings</button>
+
     <button onclick="logout()">🚪 Logout</button>
   </div>
 
+  <!-- MAIN CONTENT -->
   <div class="main">
 
-    <!-- USER MASTER -->
-    <div class="container hidden" id="usersBox">
-      <h3>User Master</h3>
-      Total Users: <b><span id="userCount">0</span></b>
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="section">
+      <div class="container">
+        <h3>Dashboard</h3>
+        <p class="note">
+          KPIs & charts will appear here<br>
+          (Total visits, pending follow-ups, user activity)
+        </p>
+      </div>
+    </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th><th>Mobile</th><th>Role</th><th>Status</th><th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="userTable"></tbody>
-      </table>
+    <!-- VISITS -->
+    <div id="visits" class="section">
+      <div class="container">
+        <h3>Visits / Site Entry</h3>
+        <p class="note">
+          Visit entry form + visit history will be here
+        </p>
+      </div>
+    </div>
 
-      <hr>
+    <!-- REPORTS -->
+    <div id="reports" class="section">
+      <div class="container">
+        <h3>Reports</h3>
+        <p class="note">
+          Date / User / Branch filters<br>
+          Follow-up reports, export later
+        </p>
+      </div>
+    </div>
 
-      <h4>Create / Edit User</h4>
-      <input id="u_id" type="hidden">
-      <input id="u_name" placeholder="Name">
-      <input id="u_mobile" placeholder="Mobile">
-      <input id="u_password" placeholder="Password">
-      <select id="u_role">
-        <option>BDO</option>
-        <option>ABDM</option>
-        <option>SR_ABDM</option>
-        <option>GM</option>
-      </select>
-      <select id="u_status">
-        <option>ACTIVE</option>
-        <option>INACTIVE</option>
-      </select>
-      <button onclick="saveUser()">Save</button>
+    <!-- USER MANAGEMENT -->
+    <div id="users" class="section">
+      <div class="container">
+        <h3>User Management</h3>
+        <p class="note">
+          Create, edit, activate / deactivate users
+        </p>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings" class="section">
+      <div class="container">
+        <h3>Settings</h3>
+        <p class="note">
+          Password reset (self & admin reset)
+        </p>
+      </div>
     </div>
 
   </div>
 </div>
 
 <script>
-const API="https://script.google.com/macros/s/AKfycbyX4vdPwU1bHeiXFHAMt5usBueFtsbS4_pEo73tDUOxdNm2wNASpbI8EtFLOSTnqhJJGw/exec";
-const user=JSON.parse(localStorage.getItem("user"));
-if(!user||user.role!=="ADMIN")location.href="login.html";
+/* ===== CONFIG ===== */
+const API = "https://script.google.com/macros/s/AKfycbwGX0ymsRdmRFDygkZmKJLAmRqCUfvLJNdKYDHB02vIgHEYwHQX0jFsxFaLMEKbP2uAAg/exec";
 
-show("users");
-
-function show(s){
-  usersBox.classList.add("hidden");
-  if(s==="users"){usersBox.classList.remove("hidden");loadUsers();}
+/* ===== SESSION ===== */
+const user = JSON.parse(localStorage.getItem("user"));
+if (!user) {
+  window.location.href = "login.html";
 }
 
-function loadUsers(){
-  fetch(API,{method:"POST",body:JSON.stringify({action:"getUsers",requester_role:user.role})})
-  .then(r=>r.json()).then(d=>{
-    userCount.innerText=d.users.length;
-    userTable.innerHTML="";
-    d.users.forEach(u=>{
-      userTable.innerHTML+=`
-      <tr>
-        <td>${u.name}</td>
-        <td>${u.mobile}</td>
-        <td>${u.role}</td>
-        <td>${u.status}</td>
-        <td>
-          <button onclick='edit(${JSON.stringify(u)})'>Edit</button>
-          <button onclick="toggle('${u.user_id}','${u.status==="ACTIVE"?"INACTIVE":"ACTIVE"}')">
-            ${u.status==="ACTIVE"?"Deactivate":"Activate"}
-          </button>
-        </td>
-      </tr>`;
-    });
-  });
+/* ===== ROLE-BASED MENU VISIBILITY ===== */
+if (user.role === "BDO" || user.role === "ABDM") {
+  hide("menuDashboard");
+  hide("menuReports");
+  hide("menuUsers");
+  hide("menuSettings");
 }
 
-function edit(u){
-  u_id.value=u.user_id;
-  u_name.value=u.name;
-  u_mobile.value=u.mobile;
-  u_role.value=u.role;
-  u_status.value=u.status;
+if (user.role === "GM") {
+  hide("menuVisits");
+  hide("menuUsers");
 }
 
-function saveUser(){
-  if(u_id.value){
-    fetch(API,{method:"POST",body:JSON.stringify({
-      action:"updateUser",
-      requester_role:user.role,
-      user_id:u_id.value,
-      name:u_name.value,
-      role:u_role.value,
-      status:u_status.value
-    })}).then(()=>loadUsers());
-  }else{
-    fetch(API,{method:"POST",body:JSON.stringify({
-      action:"addUser",
-      requester_role:user.role,
-      name:u_name.value,
-      mobile:u_mobile.value,
-      password:u_password.value,
-      role:u_role.value
-    })}).then(()=>loadUsers());
-  }
+if (user.role === "SR_ABDM") {
+  hide("menuUsers");
 }
 
-function toggle(id,status){
-  fetch(API,{method:"POST",body:JSON.stringify({
-    action:"toggleUserStatus",
-    requester_role:user.role,
-    user_id:id,
-    status
-  })}).then(()=>loadUsers());
+/* ===== DEFAULT LANDING ===== */
+if (user.role === "ADMIN" || user.role === "GM" || user.role === "SR_ABDM") {
+  showSection("dashboard");
+} else {
+  showSection("visits");
 }
 
-function logout(){localStorage.clear();location.href="login.html";}
+/* ===== FUNCTIONS ===== */
+function hide(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+function showSection(sectionId) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(sectionId).classList.add("active");
+}
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "login.html";
+}
 </script>
 
 </body>
