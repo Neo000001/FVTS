@@ -1,218 +1,144 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <title>Field Visit App</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-}
-
-/* LAYOUT */
-.app {
-  display: flex;
-  height: 100vh;
-}
-
-/* SIDEBAR */
-.sidebar {
-  width: 220px;
-  background: #1f3a5f;
-  color: white;
-  padding-top: 20px;
-}
-
-.sidebar h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 18px;
-}
-
-.sidebar button {
-  width: 100%;
-  padding: 12px;
-  background: none;
-  color: white;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.sidebar button:hover {
-  background: #16304f;
-}
-
-/* MAIN */
-.main {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.container {
-  max-width: 600px;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-}
-
-.hidden {
-  display: none;
-}
-
-/* FORM */
-label { display: block; margin-top: 10px; }
-input, select, textarea, button {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-}
-textarea { min-height: 60px; }
-
-.action-btn {
-  margin-top: 15px;
-  background: #1f3a5f;
-  color: white;
-  border: none;
-  padding: 10px;
-}
-.sub-box {
-  background: #eef1f5;
-  padding: 10px;
-  margin-top: 10px;
-}
+body{margin:0;font-family:Arial;background:#f4f6f8}
+.app{display:flex;height:100vh}
+.sidebar{width:220px;background:#1f3a5f;color:#fff}
+.sidebar button{width:100%;padding:12px;border:none;background:none;color:#fff;text-align:left}
+.sidebar button:hover{background:#16304f}
+.main{flex:1;padding:20px;overflow:auto}
+.container{background:#fff;padding:20px;border-radius:8px}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid #ccc;padding:6px;text-align:left}
 </style>
 </head>
 
 <body>
 
 <div class="app">
-
-  <!-- SIDEBAR -->
   <div class="sidebar">
-    <h2>Field Visit</h2>
-
-    <button onclick="showSection('dashboard')">📊 Dashboard</button>
-    <button onclick="showSection('visit')">📝 Visit Entry</button>
-    <button onclick="showSection('users')" id="userMenu">👥 User Management</button>
+    <button onclick="show('users')">👥 User Master</button>
     <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <!-- MAIN CONTENT -->
   <div class="main">
 
-    <!-- DASHBOARD -->
-    <div class="container hidden" id="dashboardBox">
-      <h3>Dashboard</h3>
-      <p>Summary & reports will appear here.</p>
-    </div>
+    <!-- USER MASTER -->
+    <div class="container hidden" id="usersBox">
+      <h3>User Master</h3>
+      Total Users: <b><span id="userCount">0</span></b>
 
-    <!-- USER MANAGEMENT -->
-    <div class="container hidden" id="userMgmtBox">
-      <h3>User Management</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Mobile</th><th>Role</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+      </table>
 
-      <label>Name</label>
-      <input id="um_name">
+      <hr>
 
-      <label>Mobile</label>
-      <input id="um_mobile">
-
-      <label>Password</label>
-      <input id="um_password" type="password">
-
-      <label>Role</label>
-      <select id="um_role">
+      <h4>Create / Edit User</h4>
+      <input id="u_id" type="hidden">
+      <input id="u_name" placeholder="Name">
+      <input id="u_mobile" placeholder="Mobile">
+      <input id="u_password" placeholder="Password">
+      <select id="u_role">
         <option>BDO</option>
         <option>ABDM</option>
         <option>SR_ABDM</option>
         <option>GM</option>
       </select>
-
-      <button class="action-btn" onclick="createUser()">Create User</button>
-    </div>
-
-    <!-- VISIT ENTRY -->
-    <div class="container hidden" id="visitBox">
-      <h3>Add Visit</h3>
-
-      <label>Client</label>
-      <select id="clientSelect"></select>
-      <button class="action-btn" onclick="toggleNewClient()">➕ Add New Client</button>
-
-      <div class="sub-box hidden" id="newClientBox">
-        <label>Client Name</label>
-        <input id="nc_name">
-        <label>Speciality</label>
-        <input id="nc_speciality">
-        <label>Hospital</label>
-        <input id="nc_hospital">
-        <label>Area</label>
-        <input id="nc_area">
-        <label>Type</label>
-        <select id="nc_type">
-          <option>Doctor</option>
-          <option>Hospital</option>
-          <option>Diagnostic</option>
-          <option>Corporate</option>
-        </select>
-        <button class="action-btn" onclick="addClient()">Save Client</button>
-      </div>
-
-      <label>HQ / Ex-Station</label>
-      <select id="hq"><option>HQ</option><option>Ex-Station</option></select>
-
-      <label>Co-working</label>
-      <input id="coworking">
-
-      <label>Discussion</label>
-      <textarea id="discussion"></textarea>
-
-      <button class="action-btn" onclick="submitVisit()">Submit Visit</button>
+      <select id="u_status">
+        <option>ACTIVE</option>
+        <option>INACTIVE</option>
+      </select>
+      <button onclick="saveUser()">Save</button>
     </div>
 
   </div>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbz6mMdysUMHtbbG1yoIsk4Y__k2ARb8H_qIsbUZ5FcafGs-BgC8msbY21oBvWfMcka1/exec";
-const user = JSON.parse(localStorage.getItem("user"));
-if (!user) location.href = "login.html";
+const API="https://script.google.com/macros/s/AKfycbyX4vdPwU1bHeiXFHAMt5usBueFtsbS4_pEo73tDUOxdNm2wNASpbI8EtFLOSTnqhJJGw/exec";
+const user=JSON.parse(localStorage.getItem("user"));
+if(!user||user.role!=="ADMIN")location.href="login.html";
 
-/* ROLE VISIBILITY */
-if (user.role !== "ADMIN") {
-  document.getElementById("userMenu").style.display = "none";
+show("users");
+
+function show(s){
+  usersBox.classList.add("hidden");
+  if(s==="users"){usersBox.classList.remove("hidden");loadUsers();}
 }
 
-/* SECTION HANDLER */
-function showSection(section) {
-  dashboardBox.classList.add("hidden");
-  visitBox.classList.add("hidden");
-  userMgmtBox.classList.add("hidden");
-
-  if (section === "dashboard") dashboardBox.classList.remove("hidden");
-  if (section === "visit") visitBox.classList.remove("hidden");
-  if (section === "users") userMgmtBox.classList.remove("hidden");
+function loadUsers(){
+  fetch(API,{method:"POST",body:JSON.stringify({action:"getUsers",requester_role:user.role})})
+  .then(r=>r.json()).then(d=>{
+    userCount.innerText=d.users.length;
+    userTable.innerHTML="";
+    d.users.forEach(u=>{
+      userTable.innerHTML+=`
+      <tr>
+        <td>${u.name}</td>
+        <td>${u.mobile}</td>
+        <td>${u.role}</td>
+        <td>${u.status}</td>
+        <td>
+          <button onclick='edit(${JSON.stringify(u)})'>Edit</button>
+          <button onclick="toggle('${u.user_id}','${u.status==="ACTIVE"?"INACTIVE":"ACTIVE"}')">
+            ${u.status==="ACTIVE"?"Deactivate":"Activate"}
+          </button>
+        </td>
+      </tr>`;
+    });
+  });
 }
 
-/* DEFAULT SCREEN */
-showSection(user.role === "GM" ? "dashboard" : "visit");
-
-/* LOGOUT */
-function logout() {
-  localStorage.clear();
-  location.href = "login.html";
+function edit(u){
+  u_id.value=u.user_id;
+  u_name.value=u.name;
+  u_mobile.value=u.mobile;
+  u_role.value=u.role;
+  u_status.value=u.status;
 }
 
-/* PLACEHOLDERS */
-function createUser() { alert("Backend connect next"); }
-function toggleNewClient() { newClientBox.classList.toggle("hidden"); }
-function addClient() {}
-function submitVisit() {}
+function saveUser(){
+  if(u_id.value){
+    fetch(API,{method:"POST",body:JSON.stringify({
+      action:"updateUser",
+      requester_role:user.role,
+      user_id:u_id.value,
+      name:u_name.value,
+      role:u_role.value,
+      status:u_status.value
+    })}).then(()=>loadUsers());
+  }else{
+    fetch(API,{method:"POST",body:JSON.stringify({
+      action:"addUser",
+      requester_role:user.role,
+      name:u_name.value,
+      mobile:u_mobile.value,
+      password:u_password.value,
+      role:u_role.value
+    })}).then(()=>loadUsers());
+  }
+}
+
+function toggle(id,status){
+  fetch(API,{method:"POST",body:JSON.stringify({
+    action:"toggleUserStatus",
+    requester_role:user.role,
+    user_id:id,
+    status
+  })}).then(()=>loadUsers());
+}
+
+function logout(){localStorage.clear();location.href="login.html";}
 </script>
 
 </body>
