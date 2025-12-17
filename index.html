@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+<style>
+body{
+  background:#1f3a5f;
+  font-family:Arial;
+}
+.box{
+  width:320px;
+  margin:120px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:6px;
+}
+input,button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+}
+button{
+  background:#1f3a5f;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+  <h3>Login</h3>
+  <input id="mobile" placeholder="Mobile number">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="doLogin()">Login</button>
+  <p id="msg" style="color:red"></p>
+</div>
+
+<script>
+function doLogin(){
+  const m = document.getElementById("mobile").value.trim();
+  const p = document.getElementById("password").value.trim();
+  document.getElementById("msg").innerText = "";
+
+  if(!m || !p){
+    document.getElementById("msg").innerText = "Enter mobile & password";
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(res=>{
+      if(res.success){
+        sessionStorage.setItem("user", JSON.stringify(res));
+        window.location.href = "?page=app";
+      }else{
+        document.getElementById("msg").innerText = "Invalid login";
+      }
+    })
+    .login(m,p);
+}
+</script>
+</body>
+</html>
